@@ -25,9 +25,14 @@ describe("using.lua", function()
                 asserteq(sub, string.sub)
             end
 
-            foo()
-            asserteq(sin, nil)
-            asserteq(sub, nil)
+            local function bar()
+                foo()
+                asserteq(sin, nil)
+                asserteq(sub, nil)
+            end
+
+            bar()
+            bar()
         end)
     end)
 end)

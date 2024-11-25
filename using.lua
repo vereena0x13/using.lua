@@ -20,7 +20,6 @@ return setmetatable({}, {
                     end
                 })
 
-                patched_fenvs[fenv]  = vals
                 patched_fenvs[nfenv] = vals
                 setfenv(2, nfenv)
             end
