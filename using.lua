@@ -1,7 +1,5 @@
 return setmetatable({}, {
     __call = function(t, cfg)
-        if rawget(_G, "using") ~= nil then error("using already defined") end
-
         local patched_fenvs = setmetatable({}, { __mode = "k" })
         local using = function(...)            
             local fenv   = getfenv(2)
@@ -35,7 +33,10 @@ return setmetatable({}, {
         end
 
         local sg = cfg and cfg["set_global"]
-        if sg ~= false then rawset(_G, "using", using) end
+        if sg ~= false then
+            if rawget(_G, "using") ~= nil then error("using already defined") end
+            rawset(_G, "using", using)
+        end
 
         return using
     end
