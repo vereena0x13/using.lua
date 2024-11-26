@@ -29,6 +29,24 @@ describe("using", function()
 
         bar()
         bar()
+
+
+        local function baz(t, e)
+            using(t)
+            assert.equal(e.x, x)
+            assert.equal(e.y, y)
+        end
+
+        local function baz2(t, e)
+            baz(t, e)
+            assert.equal(nil, x)
+            assert.equal(nil, y)
+        end
+
+        local t1 = { x = 3, y = -2 }
+        local t2 = { x = 42, y = 69 }
+        baz(t1, t1)
+        baz(t2, t2)
     end)
 
     it("errors on non-table arguments", function()
