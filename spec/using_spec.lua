@@ -1,38 +1,47 @@
-local function asserteq(a, b)
-    if a ~= b then
-        assert(false, tostring(a) .. " != " .. tostring(b))
-    end
-end
+local assert = require "luassert"
 
-describe("using.lua", function()
+local math_sin = math.sin
+local string_sub = string.sub
+
+describe("using", function()
     local using
 
     setup(function()
-        using = require("using")({
-            set_global = false
-        })
+        using = require "using"
     end)
 
     teardown(function()
         using = nil
     end)
 
-    describe("using", function()
-        it("works", function()
-            local function foo()
-                using(math, string)
-                asserteq(sin, math.sin)
-                asserteq(sub, string.sub)
-            end
+    it("works", function()
+        local function foo()
+            using(math, string)
+            assert.equal(math_sin, sin)
+            assert.equal(string_sub, sub)
+        end
 
-            local function bar()
-                foo()
-                asserteq(sin, nil)
-                asserteq(sub, nil)
-            end
+        local function bar()
+            foo()
+            assert.equal(nil, sin)
+            assert.equal(nil, sub)
+        end
 
-            bar()
-            bar()
-        end)
+        bar()
+        bar()
     end)
+
+    --[[
+    it("errors on non-table arguments", function()
+        assert.has_error(function()
+            using(42)
+        end, "expected table, got number (42) (1)")
+    end)
+
+    it("errors on duplicate keys", function()
+        assert.has_error(function()
+            using({ x = 1 }, { x = 2 })
+        end, "duplicate key 'x'")
+    end)
+    ]]
 end)
