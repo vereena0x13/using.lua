@@ -31,7 +31,6 @@ describe("using", function()
         bar()
     end)
 
-    --[[
     it("errors on non-table arguments", function()
         assert.has_error(function()
             using(42)
@@ -43,5 +42,4 @@ describe("using", function()
             using({ x = 1 }, { x = 2 })
         end, "duplicate key 'x'")
     end)
-    ]]
 end)
