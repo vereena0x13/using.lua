@@ -12,22 +12,21 @@ local error            = error
 local tostring         = tostring
 
 
-local function copy(...)
-    local r = {}
-    local xs = {...}
-    local n = table_getn(xs)
-    for i = 1, n do
-        local x = xs[i]
-        if x ~= nil then
-            for k, v in pairs(x) do r[k] = v end
-        end
-    end
-    return r
+local function copy_into(dst, src)
+    for k, v in pairs(src) do dst[k] = v end
 end
 
 
-local function copy_into(dst, src)
-    for k, v in pairs(src) do dst[k] = v end
+local function copy(...)
+    local r = {}
+    local xs = {...}
+    for i = 1, table_getn(xs) do
+        local x = xs[i]
+        if x ~= nil then
+            copy_into(r, x)
+        end
+    end
+    return r
 end
 
 
@@ -49,7 +48,7 @@ end
 
 
 local function make_provider_metatable(tab, vals)
-    local mt     = getmetatable(tag)
+    local mt     = getmetatable(tab)
     local _index = mt and mt.__index
     return copy(mt, {
         __index = function(t, k)
