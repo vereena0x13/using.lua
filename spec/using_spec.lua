@@ -21,7 +21,7 @@ describe("using.lua", function()
         table_use_self  = nil
     end)
 
-    
+
     describe("use", function()
         it("works", function()
             local function foo()
@@ -155,6 +155,36 @@ describe("using.lua", function()
                 }
                 table_use_self(entity, "pos", "xs")
             end, "duplicate key 'x'")
+        end)
+
+        it("errors on duplicate included names", function()
+            assert_has_error(function()
+                local entity = {
+                    type = "zombie",
+                    pos = { x = 1, y = 2, z = -3 }
+                }
+                table_use_self(entity, "pos", "pos")
+            end, "duplicate included name 'pos'")
+        end)
+
+        it("errors on non-string included names", function()
+            assert_has_error(function()
+                local entity = {
+                    type = "zombie",
+                    pos = { x = 1, y = 2, z = -3 }
+                }
+                table_use_self(entity, 42)
+            end, "expected string, got number")
+        end)
+
+        it("errors on undefined included names", function()
+            assert_has_error(function()
+                local entity = {
+                    type = "zombie",
+                    pos = { x = 1, y = 2, z = -3 }
+                }
+                table_use_self(entity, "xs")
+            end, "included name 'xs' not found")
         end)
     end)
 end)

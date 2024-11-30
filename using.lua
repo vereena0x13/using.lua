@@ -112,11 +112,23 @@ end
 exports.table_use = provide_in_table
 
 function exports.table_use_self(t, ...)
-    local names = {...}
+    local ks = {}
     local vals = {}
-    for _, name in ipairs(names) do
+    for _, name in ipairs({...}) do
+        if type(name) ~= "string" then
+            error(string_format("expected string, got %s", type(name)))
+        end
+
+        if ks[name] then
+            error(string_format("duplicate included name '%s'", name))
+        end
+        ks[name] = true
+        
         local v = t[name]
-        assert(type(v) ~= nil) -- TODO
+        if v == nil then
+            error(string_format("included name '%s' not found", name))
+        end
+
         vals[#vals+1] = v
     end
     provide_in_table(t, unpack(vals))
