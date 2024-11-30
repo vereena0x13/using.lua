@@ -4,6 +4,9 @@ local assert_has_error  = assert.has_error
 
 local math_sin          = math.sin
 local string_sub        = string.sub
+local setmetatable      = setmetatable
+local rawget            = rawget
+
 
 describe("using.lua", function()
     local use, table_use, table_use_self
@@ -54,8 +57,40 @@ describe("using.lua", function()
     
             local t1 = { x = 3, y = -2 }
             local t2 = { x = 42, y = 69 }
-            baz(t1, t1)
-            baz(t2, t2)
+            baz2(t1, t1)
+            baz2(t2, t2)
+        end)
+
+        it("respects metatable __index", function()
+            local function baz(t, e)
+                use(t)
+                assert_eq(e.x, x)
+                assert_eq(e.y, y)
+                assert_eq(42, __magic__)
+            end
+    
+            local mt = getmetatable(getfenv(baz))
+            local _index = mt and mt.__index
+            setfenv(baz, setmetatable({}, {
+                __index = function(t, k)
+                    if k == "__magic__" then return 42 end
+                    if _index then return _index(t, k) end
+                    return rawget(t, k)
+                end,
+                __newindex = mt.__newindex
+            }))
+
+            local function baz2(t, e)
+                baz(t, e)
+                assert_eq(nil, x)
+                assert_eq(nil, y)
+                assert_eq(nil, __magic__)
+            end
+    
+            local t1 = { x = 3, y = -2 }
+            local t2 = { x = 42, y = 69 }
+            baz2(t1, t1)
+            baz2(t2, t2)
         end)
 
         it("errors on non-table arguments", function()
@@ -100,6 +135,21 @@ describe("using.lua", function()
             bar()
         end)
 
+        it("respects metatable __index", function()
+            local obj = setmetatable({}, {
+                __index = function(t, k)
+                    if k == "__magic__" then return 42 end
+                    return rawget(t, k)
+                end
+            })
+            local xs = { x0 = 1, x1 = -3 }
+            table_use(obj, xs)
+
+            assert_eq(1, obj.x0)
+            assert_eq(-3, obj.x1)
+            assert_eq(42, obj.__magic__)
+        end)
+
         it("errors on non-table arguments", function()
             assert_has_error(function()
                 local entity = { type = "zombie" }
@@ -133,6 +183,22 @@ describe("using.lua", function()
     
             assert_eq(-1, entity.x0)
             assert_eq(7, entity.x1)
+        end)
+
+        it("respects metatable __index", function()
+            local obj = setmetatable({
+                 xs = { x0 = 1, x1 = -3 }
+            }, {
+                __index = function(t, k)
+                    if k == "__magic__" then return 42 end
+                    return rawget(t, k)
+                end
+            })
+            table_use_self(obj, "xs")
+
+            assert_eq(1, obj.x0)
+            assert_eq(-3, obj.x1)
+            assert_eq(42, obj.__magic__)
         end)
 
         it("errors on non-table arguments", function()
