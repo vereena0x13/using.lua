@@ -38,25 +38,9 @@ local function check_string_or_table(x)
 end
 
 
-local function getsrc(dst, x)
-    check_string_or_table(x)
-
-    if type(x) == "string" then
-        local v = dst[x]
-        if v == nil then
-            error(string_format("included name '%s' not found", x))
-        end
-        check_string_or_table(v)
-        return v
-    elseif type(x) == "table" then
-        return x
-    end
-end
-
-
 local function check_duplicate_keys(srcs)
     local ks = {}
-    for i, src in ipairs(srcs) do
+    for _, src in ipairs(srcs) do
         for k, _ in pairs(src) do
             if ks[k] then
                 error(string_format("duplicate key '%s'", tostring(k)))
@@ -77,6 +61,22 @@ local function make_provider_metatable(tab, vals)
             return rawget(tab, k)
         end
     })
+end
+
+
+local function getsrc(dst, x)
+    check_string_or_table(x)
+
+    if type(x) == "string" then
+        local v = dst[x]
+        if v == nil then
+            error(string_format("included name '%s' not found", x))
+        end
+        check_string_or_table(v)
+        return v
+    end
+
+    return x
 end
 
 
