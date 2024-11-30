@@ -104,6 +104,6 @@ local provide_in_fenv = make_provider(
 
 
 return {
-    using   = function(...) provide_in_fenv(nil, unpack({...})) end,
-    tusing  = provide_in_table
+    use         = function(...) provide_in_fenv(nil, unpack({...})) end,
+    table_use   = provide_in_table
 }

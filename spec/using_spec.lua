@@ -16,7 +16,7 @@ describe("using", function()
 
     it("works for functions", function()
         local function foo()
-            using.using(math, string)
+            using.use(math, string)
             assert.equal(math_sin, sin)
             assert.equal(string_sub, sub)
         end
@@ -32,7 +32,7 @@ describe("using", function()
 
 
         local function baz(t, e)
-            using.using(t)
+            using.use(t)
             assert.equal(e.x, x)
             assert.equal(e.y, y)
         end
@@ -52,7 +52,16 @@ describe("using", function()
     it("works for tables", function()
         local pos       = { x = 1, y = 2, z = -3 }
         local entity    = { type = "zombie" }
-        using.tusing(entity, pos)
+        using.table_use(entity, pos)
+
+        assert.equal(1, entity.x)
+        assert.equal(2, entity.y)
+        assert.equal(-3, entity.z)
+    end)
+
+    it("works for tables 2", function()
+        local entity    = { type = "zombie", pos = { x = 1, y = 2, z = -3 } }
+        using.table_use(entity, entity.pos)
 
         assert.equal(1, entity.x)
         assert.equal(2, entity.y)
@@ -61,13 +70,13 @@ describe("using", function()
 
     it("errors on non-table arguments", function()
         assert.has_error(function()
-            using.using(42)
+            using.use(42)
         end, "expected table, got number (42) (1)")
     end)
 
     it("errors on duplicate keys", function()
         assert.has_error(function()
-            using.using({ x = 1 }, { x = 2 })
+            using.use({ x = 1 }, { x = 2 })
         end, "duplicate key 'x'")
     end)
 end)
