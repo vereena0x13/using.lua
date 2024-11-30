@@ -50,22 +50,30 @@ describe("using", function()
     end)
 
     it("works for tables", function()
-        local pos       = { x = 1, y = 2, z = -3 }
-        local entity    = { type = "zombie" }
-        using.table_use(entity, pos)
+        local function foo()
+            local pos       = { x = 1, y = 2, z = -3 }
+            local entity    = { type = "zombie" }
+            using.table_use(entity, pos)
 
-        assert.equal(1, entity.x)
-        assert.equal(2, entity.y)
-        assert.equal(-3, entity.z)
-    end)
+            assert.equal(1, entity.x)
+            assert.equal(2, entity.y)
+            assert.equal(-3, entity.z)
+        end
 
-    it("works for tables 2", function()
-        local entity    = { type = "zombie", pos = { x = 1, y = 2, z = -3 } }
-        using.table_use(entity, entity.pos)
+        local function bar()
+            local entity    = {
+                type = "zombie",
+                pos = { x = 1, y = 2, z = -3 }
+            }
+            using.table_use(entity, entity.pos)
+    
+            assert.equal(1, entity.x)
+            assert.equal(2, entity.y)
+            assert.equal(-3, entity.z)
+        end
 
-        assert.equal(1, entity.x)
-        assert.equal(2, entity.y)
-        assert.equal(-3, entity.z)
+        foo()
+        bar()
     end)
 
     it("errors on non-table arguments", function()

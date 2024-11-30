@@ -9,6 +9,7 @@ local _setfenv          = setfenv
 local _rawget           = rawget
 local _error            = error
 local _tostring         = tostring
+local _unpack           = unpack
 local _string_format    = string.format
 
 
@@ -38,7 +39,7 @@ local function check_input_tables(srcs)
             _error(_string_format("expected table, got %s (%s) (%d)", _type(src), _tostring(src), i))
         end
         
-        for k, v in _pairs(src) do
+        for k, _ in _pairs(src) do
             if ks[k] then
                 _error(_string_format("duplicate key '%s'", _tostring(k)))
             end
@@ -93,7 +94,7 @@ local provide_in_table = make_provider(
 
 
 local provide_in_fenv = make_provider(
-    -- 3, not 4, because (i think) this function gets turned into a tailcall 
+    -- 3, not 4, because (i think) this function gets turned into a tailcall
     function(_) return _getfenv(3) end,
     function(_, _, mt)
         local nfenv = _setmetatable({}, mt)
@@ -104,6 +105,6 @@ local provide_in_fenv = make_provider(
 
 
 return {
-    use         = function(...) provide_in_fenv(nil, unpack({...})) end,
+    use         = function(...) provide_in_fenv(nil, _unpack({...})) end,
     table_use   = provide_in_table
 }
