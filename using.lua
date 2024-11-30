@@ -30,13 +30,33 @@ local function copy(...)
 end
 
 
-local function check_input_tables(srcs)
+local function check_string_or_table(x)
+    local t = type(x)
+    if t ~= "string" and t ~= "table" then
+        error(string_format("expected string or table, got %s (%s)", type(x), tostring(x)))
+    end
+end
+
+
+local function getsrc(dst, x)
+    check_string_or_table(x)
+
+    if type(x) == "string" then
+        local v = dst[x]
+        if v == nil then
+            error(string_format("included name '%s' not found", x))
+        end
+        check_string_or_table(v)
+        return v
+    elseif type(x) == "table" then
+        return x
+    end
+end
+
+
+local function check_duplicate_keys(srcs)
     local ks = {}
     for i, src in ipairs(srcs) do
-        if type(src) ~= "table" then
-            error(string_format("expected table, got %s (%s) (%d)", type(src), tostring(src), i))
-        end
-        
         for k, _ in pairs(src) do
             if ks[k] then
                 error(string_format("duplicate key '%s'", tostring(k)))
@@ -63,10 +83,14 @@ end
 local function make_provider(getdst, setmt)
     local patched = setmetatable({}, { __mode = "k" })
     return function(idst, ...)
-        local srcs = {...}
-        check_input_tables(srcs)
-
         local dst  = getdst(idst)
+        
+        local srcs = {}
+        for _, x in ipairs({...}) do
+            srcs[#srcs+1] = getsrc(dst, x)
+        end
+        check_duplicate_keys(srcs)
+
         local vals = patched[dst]
 
         if not vals then
@@ -82,15 +106,6 @@ local function make_provider(getdst, setmt)
 end
 
 
-local provide_in_table = make_provider(
-    function(idst) return idst end,
-    function(_, dst, mt)
-        setmetatable(dst, mt)
-        return dst
-    end
-)
-
-
 local provide_in_fenv = make_provider(
     -- 3, not 4, because (i think) this function gets turned into a tailcall
     function(_) return getfenv(3) end,
@@ -102,35 +117,16 @@ local provide_in_fenv = make_provider(
 )
 
 
-local exports = {}
-
-function exports.use(...)
-    provide_in_fenv(nil, ...)
-end
-
-exports.table_use = provide_in_table
-
-function exports.table_use_self(t, ...)
-    local ks = {}
-    local vals = {}
-    for _, name in ipairs({...}) do
-        if type(name) ~= "string" then
-            error(string_format("expected string, got %s", type(name)))
-        end
-
-        if ks[name] then
-            error(string_format("duplicate included name '%s'", name))
-        end
-        ks[name] = true
-        
-        local v = t[name]
-        if v == nil then
-            error(string_format("included name '%s' not found", name))
-        end
-
-        vals[#vals+1] = v
+local provide_in_table = make_provider(
+    function(idst) return idst end,
+    function(_, dst, mt)
+        setmetatable(dst, mt)
+        return dst
     end
-    provide_in_table(t, unpack(vals))
-end
+)
 
-return exports
+
+return {
+    use         = function(...) provide_in_fenv(nil, ...) end,
+    table_use   = provide_in_table
+}
