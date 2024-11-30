@@ -2,10 +2,29 @@ local assert            = require "luassert"
 local assert_eq         = assert.equal
 local assert_has_error  = assert.has_error
 
-local math_sin          = math.sin
-local string_sub        = string.sub
+local describe          = describe
+local setup             = setup
+local teardown          = teardown
+local it                = it
+
+local pairs             = pairs
+local type              = type
+local getmetatable      = getmetatable
 local setmetatable      = setmetatable
+local getfenv           = getfenv
+local setfenv           = setfenv
 local rawget            = rawget
+
+
+local function assert_included(table, included)
+    if type(included) == "string" then
+        included = table[included]
+    end
+    
+    for k, v in pairs(included) do
+        assert_eq(v, table[k])
+    end
+end
 
 
 describe("using.lua", function()
@@ -27,6 +46,9 @@ describe("using.lua", function()
 
     describe("use", function()
         it("works", function()
+            local math_sin      = math.sin
+            local string_sub    = string.sub
+
             local function foo()
                 use(math, string)
                 assert_eq(math_sin, sin)
@@ -43,29 +65,27 @@ describe("using.lua", function()
             bar()
     
     
-            local function baz(t, e)
+            local function baz(t)
                 use(t)
-                assert_eq(e.x, x)
-                assert_eq(e.y, y)
+                assert_included(getfenv(1), t)
             end
     
-            local function baz2(t, e)
-                baz(t, e)
+            local function baz2(t)
+                baz(t)
                 assert_eq(nil, x)
                 assert_eq(nil, y)
             end
     
             local t1 = { x = 3, y = -2 }
             local t2 = { x = 42, y = 69 }
-            baz2(t1, t1)
-            baz2(t2, t2)
+            baz2(t1)
+            baz2(t2)
         end)
 
         it("respects metatable __index", function()
-            local function baz(t, e)
+            local function baz(t)
                 use(t)
-                assert_eq(e.x, x)
-                assert_eq(e.y, y)
+                assert_included(getfenv(1), t)
                 assert_eq(42, __magic__)
             end
     
@@ -80,8 +100,8 @@ describe("using.lua", function()
                 __newindex = mt.__newindex
             }))
 
-            local function baz2(t, e)
-                baz(t, e)
+            local function baz2(t)
+                baz(t)
                 assert_eq(nil, x)
                 assert_eq(nil, y)
                 assert_eq(nil, __magic__)
@@ -89,8 +109,8 @@ describe("using.lua", function()
     
             local t1 = { x = 3, y = -2 }
             local t2 = { x = 42, y = 69 }
-            baz2(t1, t1)
-            baz2(t2, t2)
+            baz2(t1)
+            baz2(t2)
         end)
 
         it("errors on non-table arguments", function()
@@ -114,9 +134,7 @@ describe("using.lua", function()
                 local entity    = { type = "zombie" }
                 table_use(entity, pos)
 
-                assert_eq(1, entity.x)
-                assert_eq(2, entity.y)
-                assert_eq(-3, entity.z)
+                assert_included(entity, pos)
             end
 
             local function bar()
@@ -126,9 +144,7 @@ describe("using.lua", function()
                 }
                 table_use(entity, entity.pos)
         
-                assert_eq(1, entity.x)
-                assert_eq(2, entity.y)
-                assert_eq(-3, entity.z)
+                assert_included(entity, "pos")
             end
 
             foo()
@@ -145,8 +161,7 @@ describe("using.lua", function()
             local xs = { x0 = 1, x1 = -3 }
             table_use(obj, xs)
 
-            assert_eq(1, obj.x0)
-            assert_eq(-3, obj.x1)
+            assert_included(obj, xs)
             assert_eq(42, obj.__magic__)
         end)
 
@@ -177,12 +192,8 @@ describe("using.lua", function()
             }
             table_use_self(entity, "pos", "xs")
     
-            assert_eq(1, entity.x)
-            assert_eq(2, entity.y)
-            assert_eq(-3, entity.z)
-    
-            assert_eq(-1, entity.x0)
-            assert_eq(7, entity.x1)
+            assert_included(entity, "pos")
+            assert_included(entity, "xs")
         end)
 
         it("respects metatable __index", function()
@@ -196,8 +207,7 @@ describe("using.lua", function()
             })
             table_use_self(obj, "xs")
 
-            assert_eq(1, obj.x0)
-            assert_eq(-3, obj.x1)
+            assert_included(obj, "xs")
             assert_eq(42, obj.__magic__)
         end)
 
