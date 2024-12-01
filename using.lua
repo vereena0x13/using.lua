@@ -51,14 +51,19 @@ local function check_duplicate_keys(srcs)
 end
 
 
-local function make_provider_metatable(tab, vals)
-    local mt     = getmetatable(tab)
-    local _index = mt and mt.__index
+local function make_provider_metatable(mt, vals)
+    local _index = rawget(mt or {}, "__index")
     return copy(mt, {
         __index = function(t, k)
             if vals[k] then return vals[k] end
-            if _index then return _index(tab, k) end
-            return rawget(tab, k)
+           
+            local v = rawget(t, k)
+            if v ~= nil then return v end
+
+            if type(_index) == "function" then return _index(t, k) end
+            if type(_index) == "table" then return _index[k] end
+
+            return nil
         end
     })
 end
@@ -84,6 +89,9 @@ local function make_provider(getdst, setmt)
     local patched = setmetatable({}, { __mode = "k" })
     return function(idst, ...)
         local dst  = getdst(idst)
+        if type(dst) ~= "table" then
+            error(string_format("expected table, got %s (%s) from %s", type(dst), tostring(dst), tostring(idst)))
+        end
         
         local srcs = {}
         for _, x in ipairs({...}) do
@@ -92,10 +100,9 @@ local function make_provider(getdst, setmt)
         check_duplicate_keys(srcs)
 
         local vals = patched[dst]
-
         if not vals then
             vals = {}
-            local mt = make_provider_metatable(dst, vals)
+            local mt = make_provider_metatable(getmetatable(dst), vals)
             patched[setmt(idst, dst, mt)] = vals
         end
 
@@ -127,6 +134,9 @@ local provide_in_table = make_provider(
 
 
 return {
-    use         = function(...) provide_in_fenv(nil, ...) end,
-    table_use   = provide_in_table
+    use                         = function(...) provide_in_fenv(nil, ...) end,
+    table_use                   = provide_in_table,
+    util        = {
+        make_provider_metatable = make_provider_metatable
+    }
 }

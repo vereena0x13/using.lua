@@ -47,17 +47,19 @@ end
 
 
 describe("using.lua", function()
-    local use, table_use
+    local use, table_use, make_provider_metatable
 
     setup(function()
-        local using     = require "using"
-        use             = using.use
-        table_use       = using.table_use
+        local using                 = require "using"
+        use                         = using.use
+        table_use                   = using.table_use
+        make_provider_metatable     = using.util.make_provider_metatable
     end)
 
     teardown(function()
-        use             = nil
-        table_use       = nil
+        use                         = nil
+        table_use                   = nil
+        make_provider_metatable     = nil
     end)
 
 
@@ -99,22 +101,19 @@ describe("using.lua", function()
             assert_eq(nil, y)
         end)
 
-        it("respects metatable __index", function()
+        it("respects __index metamethod", function()
             local function baz(t)
                 use(t)
                 assert_included(getfenv(1), t)
                 assert_eq(42, __magic__)
             end
     
-            local mt = getmetatable(getfenv(baz))
-            local _index = mt and mt.__index
-            setfenv(baz, setmetatable({}, copy(mt, {
-                __index = function(t, k)
-                    if k == "__magic__" then return 42 end
-                    if _index then return _index(t, k) end
-                    return rawget(t, k)
-                end
-            })))
+            local mt = make_provider_metatable(
+                getmetatable(getfenv(baz)),
+                { __magic__ = 42 }
+            )
+            setfenv(baz, setmetatable({}, mt))
+
 
             local function baz2(t)
                 baz(t)
@@ -127,6 +126,10 @@ describe("using.lua", function()
             baz2({ x = 42, y = 69 })
             assert_eq(nil, x)
             assert_eq(nil, y)
+        end)
+
+        it("respects __index table", function()
+            pending()
         end)
 
         it("errors on non-table arguments", function()
@@ -180,14 +183,10 @@ describe("using.lua", function()
             baz()
         end)
 
-        it("respects metatable __index", function()
+        it("respects __index metamethod", function()
             local function foo()
-                local obj = setmetatable({}, {
-                    __index = function(t, k)
-                        if k == "__magic__" then return 42 end
-                        return rawget(t, k)
-                    end
-                })
+                local mt = make_provider_metatable(nil, { __magic__ = 42 })
+                local obj = setmetatable({}, mt)
                 local xs = { x0 = 1, x1 = -3 }
                 table_use(obj, xs)
 
@@ -196,14 +195,10 @@ describe("using.lua", function()
             end
 
             local function bar()
+                local mt = make_provider_metatable(nil, { __magic__ = 42 })
                 local obj = setmetatable({
                     xs = { x0 = 1, x1 = -3 }
-                }, {
-                    __index = function(t, k)
-                        if k == "__magic__" then return 42 end
-                        return rawget(t, k)
-                    end
-                })
+                }, mt)
                 table_use(obj, "xs")
    
                 assert_included(obj, "xs")
@@ -214,7 +209,27 @@ describe("using.lua", function()
             bar()
         end)
 
+        it("respects __index table", function()
+            local oindex = {
+                x = 4, z = -7, w = 6
+            }
+            local obj = setmetatable({
+                x = 1, y = 2
+            }, { __index = oindex })
+            local xs = { x0 = "a", x1 = "b", w = "c" }
+            table_use(obj, xs)
+
+            assert_eq(1, obj.x)
+            assert_eq(2, obj.y)
+            assert_eq(-7, obj.z)
+            assert_included(obj, xs)
+        end)
+
         it("errors on non-table arguments", function()
+            assert_has_error(function()
+                table_use(42, { x = 1, y = -2 })
+            end, "expected table, got number (42) from 42")
+
             assert_has_error(function()
                 local entity = { type = "zombie" }
                 table_use(entity, 42)
