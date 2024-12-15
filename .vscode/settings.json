@@ -1,6 +1,0 @@
-{
-    "files.exclude": {
-        "*.out": true,
-        "*.index": true
-    }
-}
