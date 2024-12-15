@@ -32,13 +32,6 @@ end
 local function errorf(...) return error(sprintf(...)) end
 
 
-local function amap(xs, fn)
-    local ys = {}
-    for i = 1, #xs do ys[i] = fn(xs[i]) end
-    return ys
-end
-
-
 local function check_string_or_table(x)
     local t = type(x)
     if t ~= "string" and t ~= "table" then
@@ -103,11 +96,8 @@ local function make_provider(getdst, setmt)
             errorf("expected table, got %s (%s) from %s", type(dst), tostring(dst), tostring(idst))
         end
         
-        --local srcs = amap({...}, function(x) return getsrc(dst, x) end)
         local srcs = {}
-        for _, x in ipairs({...}) do
-            srcs[#srcs+1] = getsrc(dst, x)
-        end
+        for i, x in ipairs({...}) do srcs[i] = getsrc(dst, x) end
         check_duplicate_keys(srcs)
 
         local vals = patched[dst]
@@ -125,8 +115,16 @@ end
 
 
 local provide_in_fenv = make_provider(
-    -- 3, not 4, because (i think) this function gets turned into a tailcall
-    function(_) return getfenv(3) end,
+    -- 3, not 4, because (i think) this function gets
+    -- turned into a tailcall -- but only on luajit? uhm.. what?
+    -- TODO: figure this out... at least so I understand it...
+    (function()
+        if jit then
+            return function(_) return getfenv(3) end
+        else
+            return function(_) return getfenv(4) end
+        end
+    end)(),
     function(_, _, mt)
         local nfenv = setmetatable({}, mt)
         setfenv(4, nfenv)
