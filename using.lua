@@ -103,7 +103,11 @@ local function make_provider(getdst, setmt)
             errorf("expected table, got %s (%s) from %s", type(dst), tostring(dst), tostring(idst))
         end
         
-        local srcs = amap({...}, function(x) return getsrc(dst, x) end)
+        --local srcs = amap({...}, function(x) return getsrc(dst, x) end)
+        local srcs = {}
+        for _, x in ipairs({...}) do
+            srcs[#srcs+1] = getsrc(dst, x)
+        end
         check_duplicate_keys(srcs)
 
         local vals = patched[dst]
