@@ -1,4 +1,3 @@
-local table_getn       = table.getn
 local string_format    = string.format
 local pairs            = pairs
 local ipairs           = ipairs
@@ -20,7 +19,7 @@ end
 local function copy(...)
     local r = {}
     local xs = {...}
-    for i = 1, table_getn(xs) do
+    for i = 1, #xs do
         local x = xs[i]
         if x ~= nil then
             copy_into(r, x)
@@ -55,6 +54,7 @@ local function make_provider_metatable(mt, vals)
     local _index = rawget(mt or {}, "__index")
     return copy(mt, {
         __index = function(t, k)
+            -- NOTE TODO: should this case be first or last? (or in the middle?)
             if vals[k] then return vals[k] end
            
             local v = rawget(t, k)
@@ -137,6 +137,8 @@ return {
     use                         = function(...) provide_in_fenv(nil, ...) end,
     table_use                   = provide_in_table,
     util        = {
+        copy_into               = copy_into,
+        copy                    = copy,
         make_provider_metatable = make_provider_metatable
     }
 }

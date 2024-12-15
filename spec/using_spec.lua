@@ -7,7 +7,6 @@ local setup             = setup
 local teardown          = teardown
 local it                = it
 
-local table_getn        = table.getn
 local pairs             = pairs
 local type              = type
 local getmetatable      = getmetatable
@@ -15,24 +14,6 @@ local setmetatable      = setmetatable
 local getfenv           = getfenv
 local setfenv           = setfenv
 local rawget            = rawget
-
-
-local function copy_into(dst, src)
-    for k, v in pairs(src) do dst[k] = v end
-end
-
-
-local function copy(...)
-    local r = {}
-    local xs = {...}
-    for i = 1, table_getn(xs) do
-        local x = xs[i]
-        if x ~= nil then
-            copy_into(r, x)
-        end
-    end
-    return r
-end
 
 
 local function assert_included(table, included)
@@ -47,19 +28,23 @@ end
 
 
 describe("using.lua", function()
-    local use, table_use, make_provider_metatable
+    local use, table_use, copy_table, copy, make_provider_metatable
 
     setup(function()
-        local using                 = require "using"
-        use                         = using.use
-        table_use                   = using.table_use
-        make_provider_metatable     = using.util.make_provider_metatable
+        local using             = require "using"
+        use                     = using.use
+        table_use               = using.table_use
+        copy_into               = using.util.copy_into
+        copy                    = using.util.copy
+        make_provider_metatable = using.util.make_provider_metatable
     end)
 
     teardown(function()
-        use                         = nil
-        table_use                   = nil
-        make_provider_metatable     = nil
+        use                     = nil
+        table_use               = nil
+        copy_into               = nil
+        copy                    = nil
+        make_provider_metatable = nil
     end)
 
 
