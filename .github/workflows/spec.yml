@@ -1,0 +1,62 @@
+name: spec
+
+on: [push, pull_request]
+
+jobs:
+  spec:
+    strategy:
+      fail-fast: false
+      matrix:
+        luaVersion: ["5.1", "luajit-openresty"]
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Cache Dependencies
+      id: cache-deps
+      uses: actions/cache@v2
+      with:
+        path: |
+          .lua
+          .luarocks
+          env
+        key: lua-${{ matrix.luaVersion }}-${{ hashFiles('using-dev-1.rockspec', '.github/workflows/spec.yml') }}
+
+    - name: Setup ‘lua’
+      if: steps.cache-deps.outputs.cache-hit != 'true'
+      uses: leafo/gh-actions-lua@v8
+      with:
+        luaVersion: ${{ matrix.luaVersion }}
+
+    - name: Setup ‘luarocks’
+      if: steps.cache-deps.outputs.cache-hit != 'true'
+      uses: leafo/gh-actions-luarocks@v4
+
+    - name: Install Dependencies
+      if: steps.cache-deps.outputs.cache-hit != 'true'
+      run: |
+        luarocks install --only-deps using-dev-1.rockspec
+        luarocks install busted
+        luarocks install busted-htest
+
+    - name: Save Environment
+      if: steps.cache-deps.outputs.cache-hit != 'true'
+      run: |
+        echo "LUA_PATH=$LUA_PATH" >> env
+        echo "LUA_CPATH=$LUA_CPATH" >> env
+        echo "PATH=$PATH" >> env
+
+    - name: Restore Environment
+      if: steps.cache-deps.outputs.cache-hit == 'true'
+      run: |
+        cat env >> $GITHUB_ENV
+
+    - name: Build
+      run: |
+        luarocks make
+
+    - name: Run Tests
+      run: |
+        busted

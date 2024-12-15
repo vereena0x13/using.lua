@@ -1,4 +1,4 @@
-local string_format    = string.format
+local sprintf          = string.format
 local pairs            = pairs
 local ipairs           = ipairs
 local type             = type
@@ -29,10 +29,20 @@ local function copy(...)
 end
 
 
+local function errorf(...) return error(sprintf(...)) end
+
+
+local function amap(xs, fn)
+    local ys = {}
+    for i = 1, #xs do ys[#ys + 1] = fn(xs[i]) end
+    return ys
+end
+
+
 local function check_string_or_table(x)
     local t = type(x)
     if t ~= "string" and t ~= "table" then
-        error(string_format("expected string or table, got %s (%s)", type(x), tostring(x)))
+        errorf("expected string or table, got %s (%s)", type(x), tostring(x))
     end
 end
 
@@ -42,7 +52,7 @@ local function check_duplicate_keys(srcs)
     for _, src in ipairs(srcs) do
         for k, _ in pairs(src) do
             if ks[k] then
-                error(string_format("duplicate key '%s'", tostring(k)))
+                errorf("duplicate key '%s'", tostring(k))
             end
             ks[k] = true
         end
@@ -75,7 +85,7 @@ local function getsrc(dst, x)
     if type(x) == "string" then
         local v = dst[x]
         if v == nil then
-            error(string_format("included name '%s' not found", x))
+            errorf("included name '%s' not found", x)
         end
         check_string_or_table(v)
         return v
@@ -90,13 +100,10 @@ local function make_provider(getdst, setmt)
     return function(idst, ...)
         local dst  = getdst(idst)
         if type(dst) ~= "table" then
-            error(string_format("expected table, got %s (%s) from %s", type(dst), tostring(dst), tostring(idst)))
+            errorf("expected table, got %s (%s) from %s", type(dst), tostring(dst), tostring(idst))
         end
         
-        local srcs = {}
-        for _, x in ipairs({...}) do
-            srcs[#srcs+1] = getsrc(dst, x)
-        end
+        local srcs = amap({...}, function(x) return getsrc(dst, x) end)
         check_duplicate_keys(srcs)
 
         local vals = patched[dst]
@@ -133,12 +140,43 @@ local provide_in_table = make_provider(
 )
 
 
-return {
+return setmetatable({
     use                         = function(...) provide_in_fenv(nil, ...) end,
     table_use                   = provide_in_table,
-    util        = {
+    util = {
         copy_into               = copy_into,
         copy                    = copy,
         make_provider_metatable = make_provider_metatable
-    }
-}
+    },
+    _VERSION                    = 'using.lua v0.1.0',
+    _DESCRIPTION                = '',
+    _URL                        = 'https://github.com/vereena0x13/using.lua',
+    _LICENSE                    = [[
+        MIT LICENSE
+
+        Copyright (c) 2024 Vereena Inara
+
+        Permission is hereby granted, free of charge, to any person obtaining a
+        copy of this software and associated documentation files (the
+        "Software"), to deal in the Software without restriction, including
+        without limitation the rights to use, copy, modify, merge, publish,
+        distribute, sublicense, and/or sell copies of the Software, and to
+        permit persons to whom the Software is furnished to do so, subject to
+        the following conditions:
+
+        The above copyright notice and this permission notice shall be included
+        in all copies or substantial portions of the Software.
+
+        THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+        OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+        MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+        IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+        CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+        TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+        SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+    ]],
+}, {
+    __metatable = "using.lua",
+    __newindex  = function() error("access violation") end,
+    __tostring  = function() return "using.lua" end
+})
