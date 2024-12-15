@@ -34,7 +34,7 @@ local function errorf(...) return error(sprintf(...)) end
 
 local function amap(xs, fn)
     local ys = {}
-    for i = 1, #xs do ys[#ys + 1] = fn(xs[i]) end
+    for i = 1, #xs do ys[i] = fn(xs[i]) end
     return ys
 end
 
